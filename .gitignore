@@ -1,0 +1,4 @@
+build_linux/vitis_hls.log
+build_linux/lk_prj/
+**/.DS_Store
+result/*.jpg

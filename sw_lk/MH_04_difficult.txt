@@ -1,0 +1,30 @@
+图像对	AEE	AAE(度)
+frame00.png->frame01.png	0.056747	0.438134
+frame01.png->frame02.png	0.050859	0.426197
+frame02.png->frame03.png	0.039805	0.231186
+frame03.png->frame04.png	0.033817	0.153078
+frame04.png->frame05.png	0.054893	0.244423
+frame05.png->frame06.png	0.026111	0.464656
+frame06.png->frame07.png	0.035522	0.367816
+frame07.png->frame08.png	0.038538	0.382811
+frame08.png->frame09.png	0.042847	0.339292
+frame09.png->frame10.png	0.024800	0.437714
+frame10.png->frame11.png	0.018735	0.321606
+frame11.png->frame12.png	0.041415	0.438747
+frame12.png->frame13.png	0.028758	0.384046
+frame13.png->frame14.png	0.025988	0.446820
+frame14.png->frame15.png	0.033675	0.358648
+frame15.png->frame16.png	0.033331	0.410846
+frame16.png->frame17.png	0.087836	0.338312
+frame17.png->frame18.png	0.033567	0.332465
+frame18.png->frame19.png	0.033259	0.443438
+frame19.png->frame20.png	0.025700	0.371575
+frame20.png->frame21.png	0.061631	0.269377
+frame21.png->frame22.png	0.036620	0.270620
+frame22.png->frame23.png	0.036798	0.383674
+frame23.png->frame24.png	0.024389	0.518601
+
+===== 总体统计 =====
+平均AEE: 0.038568
+平均AAE(度): 0.365587
+有效图像对数量: 24/24
