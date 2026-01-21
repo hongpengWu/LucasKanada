@@ -1,4 +1,9 @@
-build_linux/vitis_hls.log
-build_linux/lk_prj/
 **/.DS_Store
-result/*.jpg
+build_linux/**
+!build_linux/vivado_bd.tcl
+!build_linux/vivado_bd/
+build_linux/vivado_bd/*
+!build_linux/vivado_bd/design_1.bit
+!build_linux/vivado_bd/design_1.hdf
+!build_linux/vivado_bd/design_1.hwh
+!build_linux/vivado_bd/design_1.xsa

@@ -643,10 +643,17 @@ int hls_LK(
     unsigned short int width)                          // 输入：图像宽度
 {
     /* AI解析：HLS接口指令（实现FIFO接口) */
-    #pragma HLS INTERFACE ap_fifo port=inp1_img
-    #pragma HLS INTERFACE ap_fifo port=inp2_img
-    #pragma HLS INTERFACE ap_fifo port=vx_img
-    #pragma HLS INTERFACE ap_fifo port=vy_img
+    #pragma HLS INTERFACE m_axi port=inp1_img offset=slave bundle=gmem depth=hls_IMGSZ max_widen_bitwidth=64
+    #pragma HLS INTERFACE m_axi port=inp2_img offset=slave bundle=gmem depth=hls_IMGSZ max_widen_bitwidth=64
+    #pragma HLS INTERFACE m_axi port=vx_img offset=slave bundle=gmem depth=hls_IMGSZ max_widen_bitwidth=64
+    #pragma HLS INTERFACE m_axi port=vy_img offset=slave bundle=gmem depth=hls_IMGSZ max_widen_bitwidth=64
+    #pragma HLS INTERFACE s_axilite port=inp1_img bundle=control
+    #pragma HLS INTERFACE s_axilite port=inp2_img bundle=control
+    #pragma HLS INTERFACE s_axilite port=vx_img bundle=control
+    #pragma HLS INTERFACE s_axilite port=vy_img bundle=control
+    #pragma HLS INTERFACE s_axilite port=height bundle=control
+    #pragma HLS INTERFACE s_axilite port=width bundle=control
+    #pragma HLS INTERFACE s_axilite port=return bundle=control
 
     /* AI重点说明：DATAFLOW优化（三级并行流水) */
     #pragma HLS DATAFLOW
