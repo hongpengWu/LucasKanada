@@ -17,8 +17,8 @@ PRINT_CONFIG = {
 np.set_printoptions(**PRINT_CONFIG)
 
 
-def load_images(path_A="E:/data/MH_01_easy/mav0/cam0/data/1403636579763555584.png", 
-                path_B="E:/data/MH_01_easy/mav0/cam0/data/1403636579813555456.png"):
+def load_images(path_A="/home/whp/Desktop/XLab/LucasKanade/test_data/frame00.png", 
+                path_B="/home/whp/Desktop/XLab/LucasKanade/test_data/frame00.png"):
     """
     从指定路径加载并处理图片
     path_A: 第一张图片的路径

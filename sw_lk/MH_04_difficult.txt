@@ -8,7 +8,7 @@ frame05.png->frame06.png	0.026111	0.464656
 frame06.png->frame07.png	0.035522	0.367816
 frame07.png->frame08.png	0.038538	0.382811
 frame08.png->frame09.png	0.042847	0.339292
-frame09.png->frame10.png	0.024800	0.437714
+frame09.png->frame10.png	0.024800	0.437715
 frame10.png->frame11.png	0.018735	0.321606
 frame11.png->frame12.png	0.041415	0.438747
 frame12.png->frame13.png	0.028758	0.384046
