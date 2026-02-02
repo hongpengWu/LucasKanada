@@ -40,23 +40,29 @@
 ## 项目目录结构
 
 ```
-reference/LucasKanade/
-├── build_linux/           # Linux构建目录
-│   ├── run_hls.tcl        # 主要TCL自动化脚本（完整流程）
-│   ├── vitis_hls.log      # HLS运行日志
-│   └── lk_prj/            # HLS工程目录（运行后生成）
-│       └── solution1/     # 解决方案目录
-├── src/                   # 源码目录
-│   ├── lk_define.h        # 硬件函数参数定义头文件
-│   ├── lk_hls.cpp         # LK光流算法硬件实现
-│   ├── lk_hls.h           # 硬件函数声明头文件
-│   └── LKof_main.cpp      # 测试程序（C仿真用）
-├── test_data/             # 测试图像数据
-│   ├── frame00.png        # 第一帧测试图像
-│   └── frame01.png        # 第二帧测试图像
-├── result/                # 结果输出目录（运行后生成）
-├── sw_lk/                 # 软件参考实现目录
-└── readme_linux.md        # Linux环境说明文档
+LucasKanade/
+├── build_linux/                 # Linux构建/生成物目录
+│   ├── run_hls.tcl              # Vitis HLS 一键脚本（CSIM/CSYNTH/COSIM + export_design）
+│   ├── vivado_bd.tcl            # Vivado BD 一键脚本（PS+PL Block Design + 生成bit/xsa/hwh）
+│   ├── vitis_hls.log            # HLS运行日志
+│   ├── reports/                 # 汇总报告（例如summary_T_exec.txt）
+│   ├── lk_prj/                  # HLS工程目录（运行后生成）
+│   │   └── solution1/
+│   │       └── impl/ip/          # export_design生成的HLS IP仓库（供Vivado BD引用）
+│   └── vivado_bd/               # Vivado工程目录（运行后生成）
+│       ├── lk_bd.xpr            # Vivado工程
+│       ├── design_1.bd          # Block Design
+│       ├── design_1.bit         # 生成的bitstream（也会在此目录下复制一份）
+│       ├── design_1.xsa         # 硬件平台导出（可用于Vitis/PetaLinux）
+│       └── design_1.hwh         # 供PYNQ解析寄存器/地址映射的硬件描述
+├── src/                         # HLS源码目录
+│   ├── lk_define.h              # 参数/数据类型/顶层函数声明
+│   └── lk_hls.cpp               # LK光流HLS实现（包含顶层hls_LK与pragma）
+├── test_data/                   # 测试图像数据（灰度png）
+├── result/                      # 结果输出目录（软件/上板脚本输出）
+├── sw_lk/                       # 纯软件参考实现（Python）
+├── LK_PS+PL..py                 # PYNQ端PS+PL联调脚本（Overlay + MMIO + DDR缓冲）
+└── readme.md
 ```
 
 ## 模块说明
@@ -157,12 +163,12 @@ source ~/.bashrc
 ### 1. 进入工程目录
 
 ```bash
-# 从工程根目录进入build_linux目录
-cd reference/LucasKanade/build_linux
+# 进入build_linux目录
+cd /home/whp/Desktop/XLab/LucasKanade/build_linux
 
 # 确认文件结构
 ls -la
-# 应该看到：run_hls.tcl
+# 应该看到：run_hls.tcl / vivado_bd.tcl
 ```
 
 ### 2. 图像路径说明
@@ -279,6 +285,124 @@ result/                        # 在LKof_main.cpp中指定的输出目录
 | `lk_prj/solution1/impl/report/hls_LK_cosim.rpt` | 协同仿真报告：RTL与C代码对比验证 | ⭐⭐⭐⭐ |
 | `result/output_optical_flow.jpg` | 光流可视化结果图像 | ⭐⭐⭐ |
 | `vitis_hls.log` | 完整的HLS运行日志 | ⭐⭐⭐ |
+
+## Vivado Block Design（PS+PL）生成与比特流导出
+
+本项目的目标是“PS 负责配置与调度 + PL 负责加速计算”。硬件侧由以下两部分组成：
+- Vitis HLS 生成 `hls_LK` 的 AXI IP（含 AXI-Lite 控制口 + AXI Master 访问DDR）
+- Vivado Block Design 将 Zynq PS 与 HLS IP 连接起来，最终生成 `design_1.bit`（以及 `.xsa/.hwh`）
+
+### 0. 前置条件
+
+- 已完成 HLS 导出（即 `build_linux/lk_prj/solution1/impl/ip/` 存在）。该目录由 `run_hls.tcl` 末尾的 `export_design -flow impl -rtl verilog` 生成。
+- 已安装 Vivado（建议与 HLS 同版本/同套件）。
+
+### 1. 用脚本一键生成BD并导出bit/xsa/hwh（推荐）
+
+在主机（Linux）上执行：
+
+```bash
+cd /home/whp/Desktop/XLab/LucasKanade/build_linux
+vivado -mode batch -source vivado_bd.tcl
+```
+
+脚本 [vivado_bd.tcl](file:///home/whp/Desktop/XLab/LucasKanade/build_linux/vivado_bd.tcl) 的关键动作：
+- 创建 Vivado 工程：`build_linux/vivado_bd/lk_bd.xpr`
+- 将 `build_linux/lk_prj/solution1/impl/ip` 作为 IP Repo 加入工程并刷新 Catalog
+- 创建 BD：`design_1`
+- 配置 PS7：启用 `M_AXI_GP0` 与 `S_AXI_HP0`
+- 实例化并连接 HLS IP `hls_LK`（BD内命名为 `lk0`）
+- 自动分配地址：`assign_bd_address`
+- 综合/实现/生成bitstream，并导出 `design_1.bit`、`design_1.xsa`、`design_1.hwh`
+
+### 2. 在GUI里手工搭建BD（需要完全可控时使用）
+
+#### 2.1 建工程与加入HLS IP仓库
+
+1. Vivado 新建工程（RTL Project，Do not specify sources）。
+2. 器件选择：`xc7z020clg400-1`。
+3. `Settings → IP → Repository` 添加：
+   - `/home/whp/Desktop/XLab/LucasKanade/build_linux/lk_prj/solution1/impl/ip`
+
+#### 2.2 创建BD并实例化模块
+
+1. `IP Integrator → Create Block Design`，命名 `design_1`。
+2. 添加 `ZYNQ7 Processing System` 并 `Run Block Automation`（DDR/FIXED_IO 外部化）。
+3. 在 PS7 配置里启用：
+   - `M_AXI_GP0`
+   - `S_AXI_HP0`
+4. 添加 HLS IP：`hls_LK`（命名 `lk0`）。
+5. 添加 `AXI Interconnect`、`Processor System Reset`。
+6. 为了兼容性与脚本一致，加入：`AXI Data Width Converter` + `AXI Protocol Converter`（用于 `lk0/m_axi_gmem` → `PS7/S_AXI_HP0`）。
+
+#### 2.3 连接与时钟/复位（关键连线清单）
+
+- 控制通路（AXI-Lite）：`PS7/M_AXI_GP0` → `AXI Interconnect` → `lk0/s_axi_control`
+- 数据通路（DDR读写）：`lk0/m_axi_gmem` → `DW Conv` → `Prot Conv` → `PS7/S_AXI_HP0`
+- 时钟：`PS7/FCLK_CLK0` 连接到 `lk0/ap_clk` 以及互联/转换器 aclk（并作为 GP0/HP0 ACLK）
+- 复位：通过 `proc_sys_reset` 派发到外设 aresetn 与 `lk0/ap_rst_n`
+- Address Editor：执行 `Auto Assign Address`
+- `Validate Design` → `Generate HDL Wrapper` → `Generate Bitstream`
+
+## PS+PL 上板运行（以PYNQ为例）
+
+本项目提供了 PYNQ Python 脚本 [LK_PS+PL..py](file:///home/whp/Desktop/XLab/LucasKanade/LK_PS+PL..py) 用于在板端调用 `design_1.bit` 加速核。
+
+### 0. 准备板端目录结构
+
+脚本默认工作目录为：`/home/xilinx/jupyter_notebooks/lk`。
+
+板端目录建议如下：
+
+```
+/home/xilinx/jupyter_notebooks/lk/
+├── design_1.bit
+├── design_1.hwh
+├── test_data/
+│   ├── frame00.png
+│   └── frame01.png
+└── result/
+```
+
+### 1. 拷贝bit/hwh与测试数据到板子
+
+主机侧生成物在：
+- `/home/whp/Desktop/XLab/LucasKanade/build_linux/vivado_bd/design_1.bit`
+- `/home/whp/Desktop/XLab/LucasKanade/build_linux/vivado_bd/design_1.hwh`
+
+示例（IP/用户名按实际替换）：
+
+```bash
+scp /home/whp/Desktop/XLab/LucasKanade/build_linux/vivado_bd/design_1.bit  xilinx@<BOARD_IP>:/home/xilinx/jupyter_notebooks/lk/
+scp /home/whp/Desktop/XLab/LucasKanade/build_linux/vivado_bd/design_1.hwh  xilinx@<BOARD_IP>:/home/xilinx/jupyter_notebooks/lk/
+scp -r /home/whp/Desktop/XLab/LucasKanade/test_data                         xilinx@<BOARD_IP>:/home/xilinx/jupyter_notebooks/lk/
+```
+
+### 2. 板端运行
+
+```bash
+python3 /home/xilinx/jupyter_notebooks/lk/LK_PS+PL..py
+```
+
+结果会输出到：`/home/xilinx/jupyter_notebooks/lk/result/`。
+
+### 3. PS+PL 数据通路解释
+
+- PS 通过 AXI-Lite 写寄存器：输入/输出 DDR 地址 + `height/width` + `ap_start`
+- PL 通过 `m_axi_gmem` 访问 DDR：读两帧，写回 `vx/vy`
+- PS 轮询 `ap_done`，回读结果并做可视化/保存
+
+### 4. AXI-Lite 寄存器偏移（与脚本一致）
+
+- `0x18`：`inp1_img` DDR物理地址（64bit，低32/高32）
+- `0x24`：`inp2_img` DDR物理地址（64bit）
+- `0x30`：`vx_img` DDR物理地址（64bit）
+- `0x3C`：`vy_img` DDR物理地址（64bit）
+- `0x48`：`height`
+- `0x50`：`width`
+- `0x00`：控制寄存器（bit0=ap_start, bit1=ap_done）
+
+如果你改了顶层函数签名/端口顺序或导出方式，请以板端 `design_1.hwh` 或 HLS 导出的寄存器描述为准。
 
 ## 分步执行指南
 
@@ -759,7 +883,7 @@ find ~/.conda/envs -name "opencv.hpp" 2>/dev/null
 ```bash
 # 错误：Permission denied
 # 解决：确保目录有写权限
-chmod 755 /home/fyt/A/fpgachina25-amd/reference/LucasKanade/build_linux
+chmod 755 /home/whp/Desktop/XLab/LucasKanade/build_linux
 ```
 
 #### 内存不足
